@@ -63,3 +63,35 @@ jobs:
           echo "::set-output name=image_tag::$IMAGE_TAG"
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Setup Kustomize
+        uses: imranismail/setup-kustomize@v1
+
+      - name: Checkout kustomize repository
+        uses: actions/checkout@v2
+        with:
+          repository: seul394/eks-manifest
+          ref: main
+          token: ${{ secrets.ACTION_TOKEN }}
+          path: eks-manifest
+
+      - name: Get secret from AWS Secrets Manager
+        id: get-secret
+        run: |
+          SECRET_VALUE=$(aws secretsmanager get-secret-value --secret-id ${{ secrets.SECRET_ID }} --query SecretString --output text)
+          echo $SECRET_VALUE > secret.json
+
+      - name: Update Kubernetes resources
+        run: |
+          echo ${{ steps.login-ecr.outputs.registry }}
+          echo ${{ steps.image-info.outputs.ecr_repository }}
+          echo ${{ steps.image-info.outputs.image_tag }}
+          cd eks-manifest/overlays/dev/
+          kustomize edit set image ${{ steps.login-ecr.outputs.registry}}/${{ steps.image-info.outputs.ecr_repository }}=${{ steps.login-ecr.outputs.registry}}/\${{ steps.image-info.outputs.ecr_repository }}:\${{ steps.image-info.outputs.image_tag }}
+          cat kustomization.yaml
+          sed -i 's/access_key/${{ secrets.AWS_ACCESS_KEY_ID }}/g' ./kustomize/base/secret.yaml
+          sed -i 's/secret_key/${{ secrets.AWS_SECRET_ACCESS_KEY }}/g' ./kustomize/base/secret.yaml
+
+      - name: Apply Kustomize
+        run: |
+          kustomize build . | kubectl apply -f -
