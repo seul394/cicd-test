@@ -86,7 +86,7 @@ jobs:
           echo ${{ steps.login-ecr.outputs.registry }}
           echo ${{ steps.image-info.outputs.ecr_repository }}
           echo ${{ steps.image-info.outputs.image_tag }}
-          cd eks-manifest/overlays/dev/
+          cd eks-manifest/overlays/prod/
           kustomize edit set image ${{ steps.login-ecr.outputs.registry}}/${{ steps.image-info.outputs.ecr_repository }}=${{ steps.login-ecr.outputs.registry}}/\${{ steps.image-info.outputs.ecr_repository }}:\${{ steps.image-info.outputs.image_tag }}
           cat kustomization.yaml
           sed -i 's/access_key/${{ secrets.AWS_ACCESS_KEY_ID }}/g' ./kustomize/base/secret.yaml
