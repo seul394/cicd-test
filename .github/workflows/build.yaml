@@ -75,11 +75,11 @@ jobs:
           token: ${{ secrets.ACTION_TOKEN }}
           path: eks-manifest
 
-      - name: Get secret from AWS Secrets Manager
-        id: get-secret
-        run: |
-          SECRET_VALUE=$(aws secretsmanager get-secret-value --secret-id ${{ secrets.SECRET_ID }} --query SecretString --output text)
-          echo $SECRET_VALUE > secret.json
+      # - name: Get secret from AWS Secrets Manager
+      #   id: get-secret
+      #   run: |
+      #     SECRET_VALUE=$(aws secretsmanager get-secret-value --secret-id ${{ secrets.SECRET_ID }} --query SecretString --output text)
+      #     echo $SECRET_VALUE > secret.json
 
       - name: Update Kubernetes resources
         run: |
@@ -89,9 +89,13 @@ jobs:
           cd eks-manifest/overlays/prod/
           kustomize edit set image ${{ steps.login-ecr.outputs.registry}}/${{ steps.image-info.outputs.ecr_repository }}=${{ steps.login-ecr.outputs.registry}}/\${{ steps.image-info.outputs.ecr_repository }}:\${{ steps.image-info.outputs.image_tag }}
           cat kustomization.yaml
-          sed -i 's/access_key/${{ secrets.AWS_ACCESS_KEY_ID }}/g' ./kustomize/base/secret.yaml
-          sed -i 's/secret_key/${{ secrets.AWS_SECRET_ACCESS_KEY }}/g' ./kustomize/base/secret.yaml
+          # sed -i 's/access_key/${{ secrets.AWS_ACCESS_KEY_ID }}/g' ./kustomize/base/frontend-secret.yaml
+          # sed -i 's/secret_key/${{ secrets.AWS_SECRET_ACCESS_KEY }}/g' ./kustomize/base/frontend-secret.yaml
 
-      - name: Apply Kustomize
+      - name: Commit files
         run: |
-          kustomize build . | kubectl apply -f -
+          cd eks-manifest
+          git config --global user.email "iseul2192@gmail.com"
+          git config --global user.name "seul394"
+          git commit -am "Update image tag"
+          git push -u origin main
